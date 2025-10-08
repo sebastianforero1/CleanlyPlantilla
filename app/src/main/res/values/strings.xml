@@ -1,0 +1,22 @@
+<resources>
+    <string name="app_name">Cleanly</string>
+    <string name="welcome_title">Bienvenido a Cleanly</string>
+    <string name="login">Iniciar sesión</string>
+    <string name="signup">Registrarse</string>
+    <string name="email">Correo</string>
+    <string name="password">Contraseña</string>
+    <string name="name">Nombre</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="profile">Perfil</string>
+    <string name="credits">Créditos</string>
+    <string name="today">Hoy</string>
+    <string name="create_task">Crear tarea</string>
+    <string name="categories">Categorías</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="settings">Configuración</string>
+    <string name="share">Compartir</string>
+    <string name="task_saved">Tarea guardada</string>
+    <string name="reminder_scheduled">Recordatorio programado</string>
+    <string name="mark_done">Marcar como hecha</string>
+    <string name="delete">Eliminar</string>
+</resources>
