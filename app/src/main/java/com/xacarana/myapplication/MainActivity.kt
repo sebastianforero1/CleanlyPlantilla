@@ -7,16 +7,22 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddCircle
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Home
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.foundation.layout.padding
 import com.xacarana.myapplication.auth.AuthService
 import com.xacarana.myapplication.data.SharedPrefsTaskRepository
 import com.xacarana.myapplication.data.TaskRepository
@@ -44,22 +50,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // ✅ INICIALIZAR SIEMPRE ANTES DE setContent (evita crash en Splash/Login/Profile)
-        auth = AuthService(this)
-
-        // Repo con persistencia en SharedPreferences
-        // Carga defensiva para evitar caída si hay JSON viejo/corrupto.
-        repo = SharedPrefsTaskRepository(applicationContext).also {
-            runCatching { it.load(applicationContext) }
-                .onFailure { /* TODO: log si quieres, pero no crashear */ }
-        }
-
-        // Canal de notificaciones
+        // Inicializar servicios
+        repo = SharedPrefsTaskRepository(applicationContext).apply { load(applicationContext) }
+        auth = AuthService(applicationContext)
         Notifications.ensureChannel(this)
 
-        // Permiso de notificaciones (Android 13+)
+        // Pedir permiso de notificaciones en Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
                 .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
@@ -68,38 +66,54 @@ class MainActivity : ComponentActivity() {
                 val nav = rememberNavController()
                 var currentRoute by remember { mutableStateOf(Screen.Splash.route) }
 
+                // Elementos de la barra inferior (pantalla, label, ícono)
+                val bottomItems = listOf(
+                    Triple(Screen.Dashboard, R.string.dashboard, Icons.Rounded.Home),
+                    Triple(Screen.CreateTask, R.string.create_task, Icons.Rounded.AddCircle),
+                    Triple(Screen.Categories, R.string.categories, Icons.Rounded.Apps),
+                    Triple(Screen.Profile, R.string.profile, Icons.Rounded.Person)
+                )
+
                 Scaffold(
                     bottomBar = {
-                        if (currentRoute in listOf(
-                                Screen.Dashboard.route,
-                                Screen.CreateTask.route,
-                                Screen.Categories.route,
-                                Screen.Profile.route
-                            )
-                        ) {
-                            NavigationBar {
-                                listOf(
-                                    Screen.Dashboard to R.string.dashboard,
-                                    Screen.CreateTask to R.string.create_task,
-                                    Screen.Categories to R.string.categories,
-                                    Screen.Profile to R.string.profile
-                                ).forEach { (screen, labelRes) ->
+                        val showBar = currentRoute in listOf(
+                            Screen.Dashboard.route,
+                            Screen.CreateTask.route,
+                            Screen.Categories.route,
+                            Screen.Profile.route
+                        )
+                        if (showBar) {
+                            NavigationBar(containerColor = Color(0xFFF8F8FA)) {
+                                bottomItems.forEach { (screen, labelId, icon) ->
+                                    val selected = currentRoute.startsWith(screen.route)
                                     NavigationBarItem(
-                                        selected = currentRoute.startsWith(screen.route),
+                                        selected = selected,
                                         onClick = {
-                                            nav.navigate(screen.route) {
-                                                launchSingleTop = true
-                                                popUpTo(Screen.Dashboard.route) { saveState = true }
-                                                restoreState = true
+                                            if (currentRoute != screen.route) {
+                                                nav.navigate(screen.route) {
+                                                    popUpTo(Screen.Dashboard.route)
+                                                    launchSingleTop = true
+                                                }
                                             }
                                         },
                                         icon = {
                                             Icon(
-                                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                                                contentDescription = null
+                                                imageVector = icon,
+                                                contentDescription = null,
+                                                tint = if (selected)
+                                                    Color(0xFF1B2A49)
+                                                else Color(0xFF8A8A8A)
                                             )
                                         },
-                                        label = { Text(stringResource(id = labelRes)) }
+                                        label = {
+                                            Text(
+                                                text = stringResource(labelId),
+                                                color = if (selected)
+                                                    Color(0xFF1B2A49)
+                                                else Color(0xFF8A8A8A)
+                                            )
+                                        },
+                                        alwaysShowLabel = true
                                     )
                                 }
                             }
@@ -109,7 +123,7 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = nav,
                         startDestination = Screen.Splash.route,
-                        modifier = androidx.compose.ui.Modifier.padding(padding)
+                        modifier = Modifier.padding(padding)
                     ) {
                         composable(Screen.Splash.route) {
                             currentRoute = Screen.Splash.route
@@ -141,8 +155,7 @@ class MainActivity : ComponentActivity() {
                             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
                         ) {
                             currentRoute = Screen.TaskDetail.route
-                            // ⚠️ Evitar "!!" que tumba si no llega el arg:
-                            val taskId = it.arguments?.getString("taskId") ?: return@composable
+                            val taskId = it.arguments?.getString("taskId")!!
                             TaskDetailScreen(nav, repo, taskId)
                         }
                         composable(Screen.Categories.route) {

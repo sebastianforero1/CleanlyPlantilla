@@ -11,7 +11,18 @@ interface TaskRepository {
     fun save(task: Task)
     fun toggleDone(id: String): Task?
     fun delete(id: String)
-    fun categories(): List<String>
+
+    /**
+     * 🔁 Compatibilidad hacia atrás:
+     *   - categories(): se mantiene por si lo usabas antes.
+     *   - getCategories(): API nueva y preferida.
+     */
+    fun categories(): List<String> = getCategories()
+
+    /** Categorías independientes (persistidas). */
+    fun getCategories(): List<String>
+    fun addCategory(name: String)
+    fun removeCategory(name: String)
 
     fun records(): List<ActivityRecord>
 

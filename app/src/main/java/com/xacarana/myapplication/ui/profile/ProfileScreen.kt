@@ -13,7 +13,9 @@ import com.xacarana.myapplication.navigation.Screen
 @Composable
 fun ProfileScreen(nav: NavController, auth: AuthService) {
     Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.Center) {
-        Text(text = "Buenos días ${auth.userEmail}")
+        val displayName = auth.currentName() ?: auth.currentEmail() ?: ""
+        Text("Buenos días $displayName")
+
         Spacer(Modifier.height(12.dp))
         Button(onClick = { nav.navigate(Screen.Credits.route) }, modifier = Modifier.fillMaxWidth()) {
             Text("Créditos")

@@ -10,10 +10,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.UUID
 
 /**
- * Persistencia local usando SharedPreferences en JSON.
- * No añade dependencias. org.json viene en el SDK.
+ * Persistencia local usando SharedPreferences (JSON).
+ * - Tareas (lista)
+ * - Registros (lista)
+ * - Categorías (conjunto independiente)
  */
 class SharedPrefsTaskRepository(
     private val appContext: Context
@@ -25,11 +28,14 @@ class SharedPrefsTaskRepository(
 
     private val tasks = mutableListOf<Task>()
     private val activityLog = mutableListOf<ActivityRecord>()
+    private val categoriesSet = linkedSetOf<String>() // mantiene orden de inserción
 
     override fun load(context: Context) {
         tasks.clear()
         activityLog.clear()
+        categoriesSet.clear()
 
+        // ---- tareas
         val json = prefs.getString("tasks_json", "[]") ?: "[]"
         val arr = JSONArray(json)
         for (i in 0 until arr.length()) {
@@ -37,6 +43,7 @@ class SharedPrefsTaskRepository(
             tasks += o.toTask()
         }
 
+        // ---- registros
         val recJson = prefs.getString("records_json", "[]") ?: "[]"
         val recArr = JSONArray(recJson)
         for (i in 0 until recArr.length()) {
@@ -47,13 +54,28 @@ class SharedPrefsTaskRepository(
                 completedAt = o.getLong("completedAt")
             )
         }
+
+        // ---- categorías (independientes)
+        val catJson = prefs.getString("categories_json", null)
+        if (catJson != null) {
+            val catArr = JSONArray(catJson)
+            for (i in 0 until catArr.length()) {
+                categoriesSet += catArr.getString(i).trim()
+            }
+        } else {
+            // si aún no existían, sembrar a partir de tareas guardadas
+            categoriesSet += tasks.map { it.category.trim() }.filter { it.isNotBlank() }
+        }
+        persistCategoriesOnly()
     }
 
     override fun persist() {
+        // tareas
         val arr = JSONArray()
         tasks.forEach { arr.put(it.toJson()) }
         prefs.edit().putString("tasks_json", arr.toString()).apply()
 
+        // registros
         val recArr = JSONArray()
         activityLog.forEach {
             recArr.put(JSONObject().apply {
@@ -63,7 +85,18 @@ class SharedPrefsTaskRepository(
             })
         }
         prefs.edit().putString("records_json", recArr.toString()).apply()
+
+        // categorías
+        persistCategoriesOnly()
     }
+
+    private fun persistCategoriesOnly() {
+        val catArr = JSONArray()
+        categoriesSet.forEach { catArr.put(it) }
+        prefs.edit().putString("categories_json", catArr.toString()).apply()
+    }
+
+    // ---------- TAREAS ----------
 
     override fun getTasks(date: LocalDate?): List<Task> =
         if (date == null) tasks.toList()
@@ -74,6 +107,11 @@ class SharedPrefsTaskRepository(
     override fun save(task: Task) {
         val index = tasks.indexOfFirst { it.id == task.id }
         if (index >= 0) tasks[index] = task else tasks += task
+
+        // Asegurar que la categoría exista en el catálogo independiente
+        val cat = task.category.trim()
+        if (cat.isNotBlank()) categoriesSet += cat
+
         persist()
 
         // Si tiene hora, programar recordatorio 1h antes
@@ -86,7 +124,10 @@ class SharedPrefsTaskRepository(
         val idx = tasks.indexOfFirst { it.id == id }
         if (idx < 0) return null
         val cur = tasks[idx]
-        val toggled = cur.copy(done = !cur.done, completedAt = if (!cur.done) System.currentTimeMillis() else null)
+        val toggled = cur.copy(
+            done = !cur.done,
+            completedAt = if (!cur.done) System.currentTimeMillis() else null
+        )
         tasks[idx] = toggled
         persist()
 
@@ -105,7 +146,7 @@ class SharedPrefsTaskRepository(
                 }
                 nextDate?.let {
                     val next = toggled.copy(
-                        id = java.util.UUID.randomUUID().toString(),
+                        id = UUID.randomUUID().toString(),
                         date = it,
                         done = false,
                         completedAt = null,
@@ -123,8 +164,30 @@ class SharedPrefsTaskRepository(
         persist()
     }
 
-    override fun categories(): List<String> =
-        tasks.map { it.category }.toSet().sorted()
+    // ---------- CATEGORÍAS ----------
+
+    /** Compat: antes devolvías categorías calculadas desde tareas. */
+    override fun categories(): List<String> = getCategories()
+
+    override fun getCategories(): List<String> = categoriesSet.toList()
+
+    override fun addCategory(name: String) {
+        val n = name.trim()
+        if (n.isBlank()) return
+        categoriesSet += n
+        persistCategoriesOnly()
+    }
+
+    override fun removeCategory(name: String) {
+        val n = name.trim()
+        if (n.isBlank()) return
+        categoriesSet.remove(n)
+        persistCategoriesOnly()
+
+        // (Opcional) si quieres, elimina la categoría de tareas existentes:
+        // tasks.replaceAll { if (it.category == n) it.copy(category = "") else it }
+        // persist()
+    }
 
     override fun records(): List<ActivityRecord> = activityLog.toList()
 
