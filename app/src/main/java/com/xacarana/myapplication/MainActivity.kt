@@ -4,13 +4,13 @@ import android.Manifest
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.res.painterResource
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -44,13 +44,22 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Repo en memoria con persistencia en SharedPreferences
-        repo = SharedPrefsTaskRepository(applicationContext).apply { load(applicationContext) }
+        // ✅ INICIALIZAR SIEMPRE ANTES DE setContent (evita crash en Splash/Login/Profile)
+        auth = AuthService(this)
+
+        // Repo con persistencia en SharedPreferences
+        // Carga defensiva para evitar caída si hay JSON viejo/corrupto.
+        repo = SharedPrefsTaskRepository(applicationContext).also {
+            runCatching { it.load(applicationContext) }
+                .onFailure { /* TODO: log si quieres, pero no crashear */ }
+        }
+
+        // Canal de notificaciones
         Notifications.ensureChannel(this)
 
-        // Pedir permiso de notificaciones (13+)
+        // Permiso de notificaciones (Android 13+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { } // no-op
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* no-op */ }
                 .launch(Manifest.permission.POST_NOTIFICATIONS)
         }
 
@@ -77,8 +86,19 @@ class MainActivity : ComponentActivity() {
                                 ).forEach { (screen, labelRes) ->
                                     NavigationBarItem(
                                         selected = currentRoute.startsWith(screen.route),
-                                        onClick = { nav.navigate(screen.route) },
-                                        icon = { Icon(painterResource(id = R.drawable.ic_launcher_foreground), contentDescription = null) },
+                                        onClick = {
+                                            nav.navigate(screen.route) {
+                                                launchSingleTop = true
+                                                popUpTo(Screen.Dashboard.route) { saveState = true }
+                                                restoreState = true
+                                            }
+                                        },
+                                        icon = {
+                                            Icon(
+                                                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                                                contentDescription = null
+                                            )
+                                        },
                                         label = { Text(stringResource(id = labelRes)) }
                                     )
                                 }
@@ -91,25 +111,56 @@ class MainActivity : ComponentActivity() {
                         startDestination = Screen.Splash.route,
                         modifier = androidx.compose.ui.Modifier.padding(padding)
                     ) {
-                        composable(Screen.Splash.route) { currentRoute = Screen.Splash.route; SplashScreen(nav, auth) }
-                        composable(Screen.Welcome.route) { currentRoute = Screen.Welcome.route; WelcomeScreen(nav) }
-                        composable(Screen.Login.route) { currentRoute = Screen.Login.route; LoginScreen(nav, auth) }
-                        composable(Screen.SignUp.route) { currentRoute = Screen.SignUp.route; SignUpScreen(nav, auth) }
+                        composable(Screen.Splash.route) {
+                            currentRoute = Screen.Splash.route
+                            SplashScreen(nav, auth)
+                        }
+                        composable(Screen.Welcome.route) {
+                            currentRoute = Screen.Welcome.route
+                            WelcomeScreen(nav)
+                        }
+                        composable(Screen.Login.route) {
+                            currentRoute = Screen.Login.route
+                            LoginScreen(nav, auth)
+                        }
+                        composable(Screen.SignUp.route) {
+                            currentRoute = Screen.SignUp.route
+                            SignUpScreen(nav, auth)
+                        }
 
-                        composable(Screen.Dashboard.route) { currentRoute = Screen.Dashboard.route; DashboardScreen(nav, repo) }
-                        composable(Screen.CreateTask.route) { currentRoute = Screen.CreateTask.route; CreateTaskScreen(nav, repo) }
+                        composable(Screen.Dashboard.route) {
+                            currentRoute = Screen.Dashboard.route
+                            DashboardScreen(nav, repo)
+                        }
+                        composable(Screen.CreateTask.route) {
+                            currentRoute = Screen.CreateTask.route
+                            CreateTaskScreen(nav, repo)
+                        }
                         composable(
                             route = Screen.TaskDetail.route,
                             arguments = listOf(navArgument("taskId") { type = NavType.StringType })
                         ) {
                             currentRoute = Screen.TaskDetail.route
-                            val taskId = it.arguments?.getString("taskId")!!
+                            // ⚠️ Evitar "!!" que tumba si no llega el arg:
+                            val taskId = it.arguments?.getString("taskId") ?: return@composable
                             TaskDetailScreen(nav, repo, taskId)
                         }
-                        composable(Screen.Categories.route) { currentRoute = Screen.Categories.route; CategoriesScreen(repo) }
-                        composable(Screen.Profile.route) { currentRoute = Screen.Profile.route; ProfileScreen(nav, auth) }
-                        composable(Screen.Settings.route) { currentRoute = Screen.Settings.route; SettingsScreen() }
-                        composable(Screen.Credits.route) { currentRoute = Screen.Credits.route; CreditsScreen() }
+                        composable(Screen.Categories.route) {
+                            currentRoute = Screen.Categories.route
+                            CategoriesScreen(repo)
+                        }
+                        composable(Screen.Profile.route) {
+                            currentRoute = Screen.Profile.route
+                            ProfileScreen(nav, auth)
+                        }
+                        composable(Screen.Settings.route) {
+                            currentRoute = Screen.Settings.route
+                            SettingsScreen()
+                        }
+                        composable(Screen.Credits.route) {
+                            currentRoute = Screen.Credits.route
+                            CreditsScreen()
+                        }
                     }
                 }
             }
