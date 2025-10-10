@@ -1,11 +1,7 @@
 package com.xacarana.myapplication.ui.auth
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -15,6 +11,7 @@ import androidx.navigation.NavController
 import com.xacarana.myapplication.auth.AuthService
 import com.xacarana.myapplication.navigation.Screen
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun LoginScreen(nav: NavController, auth: AuthService) {
@@ -23,16 +20,31 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
     val scope = rememberCoroutineScope()
     val snack = remember { SnackbarHostState() }
 
-    Box(Modifier.fillMaxSize().padding(24.dp)) {
-        Column {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+    ) {
+        // Contenido centrado
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                "Iniciar sesión",
+                style = MaterialTheme.typography.headlineSmall
+            )
+
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Correo") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
-            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = pass,
@@ -40,9 +52,8 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
                 label = { Text("Contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
-            Spacer(Modifier.height(12.dp))
 
             Button(
                 onClick = {
@@ -58,12 +69,21 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(50.dp),
+                shape = RoundedCornerShape(25.dp)
             ) {
                 Text("Iniciar sesión")
             }
         }
 
-        SnackbarHost(hostState = snack, modifier = Modifier.align(Alignment.BottomCenter))
+        // Snackbars abajo
+        SnackbarHost(
+            hostState = snack,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp)
+        )
     }
 }

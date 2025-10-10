@@ -1,173 +1,142 @@
-@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
-
 package com.xacarana.myapplication.ui.tasks
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.xacarana.myapplication.data.TaskRepository
 import com.xacarana.myapplication.model.Repeat
-import com.xacarana.myapplication.model.Task
 import java.time.LocalDate
 import java.time.LocalTime
-import java.util.UUID
+import java.util.*
 
 @Composable
 fun CreateTaskScreen(nav: NavController, repo: TaskRepository) {
-
-    // Estados simples como String (evita .text)
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
-
-    // Selector de categoría desde catálogo
-    val catalog = remember { repo.getCategories() }
-    var category by remember { mutableStateOf(if (catalog.isNotEmpty()) catalog.first() else "") }
-    var categoryExpanded by remember { mutableStateOf(false) }
-
-    // Fecha / hora como texto amigable
-    var dateStr by remember { mutableStateOf(LocalDate.now().toString()) } // YYYY-MM-DD
-    var timeStr by remember { mutableStateOf("") } // HH:mm opcional
-
-    // Repetición
+    var category by remember { mutableStateOf("") }
+    var date by remember { mutableStateOf(LocalDate.now().toString()) }
+    var time by remember { mutableStateOf("") }
     var repeat by remember { mutableStateOf(Repeat.NONE) }
+    var error by remember { mutableStateOf<String?>(null) }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(horizontal = 24.dp),
+        contentAlignment = Alignment.Center  // Centra todo el contenido
     ) {
-        Text(text = "Crear categorías / tareas", style = MaterialTheme.typography.titleLarge)
-
-        OutlinedTextField(
-            value = title,
-            onValueChange = { title = it },
-            label = { Text("Título") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = description,
-            onValueChange = { description = it },
-            label = { Text("Descripción") },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        // Categoría - Exposed dropdown
-        ExposedDropdownMenuBox(
-            expanded = categoryExpanded,
-            onExpandedChange = { categoryExpanded = !categoryExpanded }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            Text(
+                "Crear categorías / tareas",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Título") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = description,
+                onValueChange = { description = it },
+                label = { Text("Descripción") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
             OutlinedTextField(
                 value = category,
                 onValueChange = { category = it },
                 label = { Text("Categoría") },
-                modifier = Modifier
-                    .menuAnchor()
-                    .fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
-            ExposedDropdownMenu(
-                expanded = categoryExpanded,
-                onDismissRequest = { categoryExpanded = false }
+
+            OutlinedTextField(
+                value = date,
+                onValueChange = { date = it },
+                label = { Text("Fecha (YYYY-MM-DD)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = time,
+                onValueChange = { time = it },
+                label = { Text("Hora (HH:mm) opcional") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // Botones de repetición
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                catalog.forEach { cat ->
-                    DropdownMenuItem(
-                        text = { Text(cat) },
-                        onClick = {
-                            category = cat
-                            categoryExpanded = false
-                        }
+                listOf(
+                    Repeat.NONE to "Una vez",
+                    Repeat.DAILY to "Diaria",
+                    Repeat.WEEKLY to "Semanal",
+                    Repeat.MONTHLY to "Mensual"
+                ).forEach { (mode, label) ->
+                    FilterChip(
+                        selected = repeat == mode,
+                        onClick = { repeat = mode },
+                        label = { Text(label) }
                     )
                 }
             }
-        }
 
-        OutlinedTextField(
-            value = dateStr,
-            onValueChange = { dateStr = it },
-            label = { Text("Fecha (YYYY-MM-DD)") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+            }
 
-        OutlinedTextField(
-            value = timeStr,
-            onValueChange = { timeStr = it },
-            label = { Text("Hora (HH:mm) opcional") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
+            Spacer(Modifier.height(8.dp))
 
-        // Chips de repetición
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = repeat == Repeat.NONE,
-                onClick = { repeat = Repeat.NONE },
-                label = { Text("Una vez") }
-            )
-            FilterChip(
-                selected = repeat == Repeat.DAILY,
-                onClick = { repeat = Repeat.DAILY },
-                label = { Text("Diaria") }
-            )
-            FilterChip(
-                selected = repeat == Repeat.WEEKLY,
-                onClick = { repeat = Repeat.WEEKLY },
-                label = { Text("Semanal") }
-            )
-            FilterChip(
-                selected = repeat == Repeat.MONTHLY,
-                onClick = { repeat = Repeat.MONTHLY },
-                label = { Text("Mensual") }
-            )
-        }
+            Button(
+                onClick = {
+                    if (title.isBlank()) {
+                        error = "El título es obligatorio"
+                        return@Button
+                    }
 
-        Spacer(Modifier.height(8.dp))
+                    val task = com.xacarana.myapplication.model.Task(
+                        id = UUID.randomUUID().toString(),
+                        title = title,
+                        description = description.ifBlank { null },
+                        category = category.ifBlank { "General" },
+                        date = LocalDate.parse(date),
+                        time = time.ifBlank { null }?.let { LocalTime.parse(it) },
+                        repeat = repeat
+                    )
 
-        Button(
-            onClick = {
-                // Validaciones mínimas
-                val date = runCatching { LocalDate.parse(dateStr) }.getOrNull() ?: LocalDate.now()
-                val time = timeStr.trim().let { if (it.isBlank()) null else runCatching { LocalTime.parse(it) }.getOrNull() }
-
-                val task = Task(
-                    id = UUID.randomUUID().toString(),
-                    title = title.trim(),
-                    description = description.ifBlank { null },
-                    category = category.ifBlank { "Sin categoría" },
-                    date = date,
-                    time = time,
-                    repeat = repeat,
-                    done = false,
-                    createdAt = System.currentTimeMillis(),
-                    completedAt = null
-                )
-
-                repo.save(task) // guarda + agenda recordatorio 1h antes si tiene hora
-                nav.popBackStack() // volver al dashboard
-            },
-            enabled = title.isNotBlank(),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Guardar")
+                    repo.save(task)
+                    nav.popBackStack()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = MaterialTheme.shapes.medium,
+                enabled = title.isNotBlank()
+            ) {
+                Text("Guardar")
+            }
         }
     }
 }

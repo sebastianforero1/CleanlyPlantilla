@@ -26,7 +26,7 @@ fun CreditsScreen() {
                 Spacer(Modifier.height(12.dp))
                 Text("Sebastián Forero")
                 Text("Sebastián Villa")
-                Text("Julián Guisa")
+                Text("Julián Guisao")
             }
         }
     }

@@ -4,168 +4,107 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ChevronLeft
+import androidx.compose.material.icons.outlined.ChevronRight
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.xacarana.myapplication.util.DateUtils
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * Estadísticas del día para pintar indicadores en el calendario.
- * @param total cantidad total de tareas del día
- * @param done  cantidad de tareas completadas del día
- */
-data class DayStats(val total: Int = 0, val done: Int = 0)
-
-/**
- * Fila de calendario semanal con indicadores por día.
- *
- * - Muestra el número de día, abreviatura (Lun, Mar...), un badge done/total
- *   y una barra de progreso muy compacta (done/total).
- * - statsProvider(date) debe devolver DayStats para ese día.
- *
- * Comentarios (ES):
- * - No hay dependencias nuevas. Material 3.
- * - Si no quieres stats, deja statsProvider por defecto (todo a 0) y no se dibujan badges.
+ * Fila de calendario con paginación por semanas.
+ * - Flechas para ir a semana anterior / siguiente.
+ * - Mantiene seleccionado el día recibido por props.
+ * - Si 'selected' cambia a una semana distinta, se centra esa semana automáticamente.
  */
 @Composable
 fun CalendarRow(
-    days: List<LocalDate>,
+    days: List<LocalDate>,          // puedes seguir pasándolo como hasta ahora
     selected: LocalDate,
-    onSelect: (LocalDate) -> Unit,
-    statsProvider: (LocalDate) -> DayStats = { DayStats() }
+    onSelect: (LocalDate) -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        days.forEach { date ->
-            val isSelected = date == selected
-            val stats = statsProvider(date)
-            DayCell(
-                date = date,
-                selected = isSelected,
-                stats = stats,
-                onClick = { onSelect(date) }
-            )
+    // Estado de la semana mostrada (domingo de esa semana)
+    var weekStart by remember(selected) {
+        mutableStateOf(DateUtils.startOfWeek(selected))
+    }
+
+    // Si desde fuera seleccionan un día fuera de la semana mostrada, mover la semana
+    LaunchedEffect(selected) {
+        if (!DateUtils.isInWeek(selected, weekStart)) {
+            weekStart = DateUtils.startOfWeek(selected)
         }
     }
-}
 
-@Composable
-private fun DayCell(
-    date: LocalDate,
-    selected: Boolean,
-    stats: DayStats,
-    onClick: () -> Unit
-) {
-    val dayNumber = date.dayOfMonth.toString()
-    val dayName = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-        .replace(".", "") // limpio abreviaturas tipo "lun."
-    val selectedColor = MaterialTheme.colorScheme.primary
-    val onSelected = MaterialTheme.colorScheme.onPrimary
-    val outline = MaterialTheme.colorScheme.outlineVariant
-    val onSurface = MaterialTheme.colorScheme.onSurfaceVariant
+    val visibleDays = remember(weekStart) { DateUtils.weekRangeFromStart(weekStart) }
 
-    Column(
-        modifier = Modifier
-            .width(48.dp)
-            .padding(vertical = 8.dp)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick() }
-            .padding(vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        // Abreviatura del día (Lun, Mar, ...)
-        Text(
-            text = dayName.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            color = onSurface
-        )
+        IconButton(onClick = { weekStart = DateUtils.previousWeekStart(weekStart) }) {
+            Icon(Icons.Outlined.ChevronLeft, contentDescription = "Semana anterior")
+        }
 
-        Spacer(Modifier.height(4.dp))
-
-        // Bolita con el número de día
-        Surface(
-            color = if (selected) selectedColor else MaterialTheme.colorScheme.surfaceVariant,
-            contentColor = if (selected) onSelected else MaterialTheme.colorScheme.onSurface,
-            shape = CircleShape,
-            tonalElevation = if (selected) 2.dp else 0.dp
+        Row(
+            modifier = Modifier.weight(1f),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Box(
-                modifier = Modifier
-                    .size(34.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = dayNumber,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium
+            visibleDays.forEach { day ->
+                val isSelected = day == selected
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .padding(vertical = 6.dp)
+                        .widthIn(min = 36.dp)
+                        .clickable { onSelect(day) }
+                ) {
+                    // Nombre corto del día (SUN, MON, ...)
+                    Text(
+                        text = day.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.ENGLISH).uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                )
+                    Spacer(Modifier.height(4.dp))
+                    // Día del mes en "pill"
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (isSelected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = day.dayOfMonth.toString(),
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                            ),
+                            color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                            else MaterialTheme.colorScheme.onSurface
+                        )
+                    }
+                }
             }
         }
 
-        // Badge done/total (solo si hay tareas)
-        if (stats.total > 0) {
-            Spacer(Modifier.height(6.dp))
-            BadgeCounter(done = stats.done, total = stats.total)
-
-            // Mini barra de progreso (hecha con dos cajas)
-            Spacer(Modifier.height(4.dp))
-            ProgressMini(done = stats.done, total = stats.total, outline = outline)
+        IconButton(onClick = { weekStart = DateUtils.nextWeekStart(weekStart) }) {
+            Icon(Icons.Outlined.ChevronRight, contentDescription = "Semana siguiente")
         }
-    }
-}
-
-@Composable
-private fun BadgeCounter(done: Int, total: Int) {
-    val bg = MaterialTheme.colorScheme.secondaryContainer
-    val fg = MaterialTheme.colorScheme.onSecondaryContainer
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .padding(horizontal = 6.dp, vertical = 2.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = "$done/$total",
-            style = MaterialTheme.typography.labelSmall,
-            color = fg
-        )
-    }
-}
-
-@Composable
-private fun ProgressMini(done: Int, total: Int, outline: androidx.compose.ui.graphics.Color) {
-    val pct = if (total <= 0) 0f else (done.toFloat() / total.toFloat()).coerceIn(0f, 1f)
-    val track = outline.copy(alpha = 0.45f)
-    val fill = MaterialTheme.colorScheme.primary
-
-    Box(
-        modifier = Modifier
-            .height(4.dp)
-            .width(40.dp)
-            .clip(RoundedCornerShape(2.dp))
-            .background(track)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxHeight()
-                .fillMaxWidth(pct)
-                .background(fill)
-        )
     }
 }

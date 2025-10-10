@@ -11,6 +11,7 @@ import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
 import java.util.UUID
+import androidx.core.content.edit
 
 /**
  * Persistencia local usando SharedPreferences (JSON).
@@ -93,7 +94,7 @@ class SharedPrefsTaskRepository(
     private fun persistCategoriesOnly() {
         val catArr = JSONArray()
         categoriesSet.forEach { catArr.put(it) }
-        prefs.edit().putString("categories_json", catArr.toString()).apply()
+        prefs.edit { putString("categories_json", catArr.toString()) }
     }
 
     // ---------- TAREAS ----------

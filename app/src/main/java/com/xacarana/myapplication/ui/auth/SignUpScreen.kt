@@ -11,6 +11,7 @@ import androidx.navigation.NavController
 import com.xacarana.myapplication.auth.AuthService
 import com.xacarana.myapplication.navigation.Screen
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @Composable
 fun SignUpScreen(nav: NavController, auth: AuthService) {
@@ -22,28 +23,36 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
     val scope = rememberCoroutineScope()
     val snack = remember { SnackbarHostState() }
 
-    Box(Modifier.fillMaxSize().padding(16.dp)) {
-        Column(Modifier.fillMaxWidth()) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp)
+    ) {
+        // Contenido centrado
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.Center),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text("Crear cuenta", style = MaterialTheme.typography.headlineSmall)
-            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
                 label = { Text("¿Cómo te llamas?") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
-            Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
                 label = { Text("Correo (Gmail)") },
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
-            Spacer(Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = pass,
@@ -51,15 +60,18 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                 label = { Text("Crea una contraseña") },
                 visualTransformation = PasswordVisualTransformation(),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(0.85f)
             )
 
+            // Mensaje de validación local
             error?.let {
-                Spacer(Modifier.height(8.dp))
-                Text(it, color = MaterialTheme.colorScheme.error)
+                Text(
+                    it,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
 
-            Spacer(Modifier.height(16.dp))
             Button(
                 onClick = {
                     val emailStr = email.trim()
@@ -69,14 +81,13 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                     // Validaciones
                     if (nameStr.isBlank()) { error = "El nombre es obligatorio"; return@Button }
                     if (!emailStr.matches(Regex("^[A-Za-z0-9._%+-]+@gmail\\.com$"))) {
-                        error = "Ingresa un correo Gmail válido (terminado en @gmail.com)"
+                        error = "Ingresa un correo válido (terminado en @gmail.com)"
                         return@Button
                     }
                     if (passStr.length < 6) { error = "La contraseña debe tener al menos 6 caracteres"; return@Button }
 
                     error = null
                     scope.launch {
-                        // signUp de tu AuthService no devuelve Result -> si no lanza error, navegamos
                         runCatching { auth.signUp(nameStr, emailStr, passStr) }
                             .onSuccess {
                                 nav.navigate(Screen.Dashboard.route) {
@@ -89,10 +100,21 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                             }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Crear cuenta") }
+                modifier = Modifier
+                    .fillMaxWidth(0.85f)
+                    .height(50.dp),
+                shape = RoundedCornerShape(25.dp)
+            ) {
+                Text("Crear cuenta")
+            }
         }
 
-        SnackbarHost(hostState = snack, modifier = Modifier.align(Alignment.BottomCenter))
+        // Snackbars abajo
+        SnackbarHost(
+            hostState = snack,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 12.dp)
+        )
     }
 }
