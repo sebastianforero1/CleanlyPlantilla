@@ -13,6 +13,10 @@ import com.xacarana.myapplication.navigation.Screen
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 
+/**
+ * Pantalla de registro de usuario.
+ * Permite crear una cuenta nueva validando los datos ingresados.
+ */
 @Composable
 fun SignUpScreen(nav: NavController, auth: AuthService) {
     var name by remember { mutableStateOf("") }
@@ -23,13 +27,15 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
     val scope = rememberCoroutineScope()
     val snack = remember { SnackbarHostState() }
 
+    // Contenedor principal de la pantalla
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
         // Contenido centrado
-        Column(
+    // Columna con los campos y botón de registro
+    Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center),
@@ -38,6 +44,7 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
         ) {
             Text("Crear cuenta", style = MaterialTheme.typography.headlineSmall)
 
+            // Campo para ingresar el nombre del usuario
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it },
@@ -46,6 +53,7 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
 
+            // Campo para ingresar el correo electrónico (solo Gmail)
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -54,6 +62,7 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
 
+            // Campo para ingresar la contraseña
             OutlinedTextField(
                 value = pass,
                 onValueChange = { pass = it },
@@ -64,6 +73,7 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
             )
 
             // Mensaje de validación local
+            // Muestra mensaje de error de validación si existe
             error?.let {
                 Text(
                     it,
@@ -72,6 +82,7 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                 )
             }
 
+            // Botón para crear la cuenta. Realiza validaciones y llama al servicio de registro.
             Button(
                 onClick = {
                     val emailStr = email.trim()
@@ -110,7 +121,8 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
         }
 
         // Snackbars abajo
-        SnackbarHost(
+    // Snackbar para mostrar mensajes de error o información al usuario
+    SnackbarHost(
             hostState = snack,
             modifier = Modifier
                 .align(Alignment.BottomCenter)

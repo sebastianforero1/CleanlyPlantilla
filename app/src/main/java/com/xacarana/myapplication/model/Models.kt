@@ -6,13 +6,17 @@ import java.util.UUID
 
 // ===== Modelos propios de Cleanly =====
 
-// Categoría simple para agrupar tareas (Cocina, Baño, Sala, etc.)
+/**
+ * Modelo de categoría simple para agrupar tareas (ejemplo: Cocina, Baño, Sala, etc.)
+ */
 data class Category(
     val id: String = UUID.randomUUID().toString(),
     val name: String
 )
 
-// Tarea de limpieza
+/**
+ * Modelo de tarea de limpieza. Incluye información sobre título, descripción, categoría, fecha, hora, repetición y estado.
+ */
 data class Task(
     val id: String = UUID.randomUUID().toString(),
     val title: String,
@@ -26,7 +30,9 @@ data class Task(
     val completedAt: Long? = null
 )
 
-// Registro histórico (audit trail) para “tarea completada”
+/**
+ * Modelo de registro histórico para auditar tareas completadas.
+ */
 data class ActivityRecord(
     val taskId: String,
     val title: String,
