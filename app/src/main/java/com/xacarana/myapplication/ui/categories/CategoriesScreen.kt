@@ -19,6 +19,14 @@ fun CategoriesScreen(repo: TaskRepository) {
     var newCategory by remember { mutableStateOf("") }
     var categories by remember { mutableStateOf(repo.categories().toMutableList()) }
 
+    fun addCategory(category: String) {
+        if (category.isNotEmpty() && !categories.contains(category)) {
+            val newList = categories.toMutableList().apply { add(category) }
+            categories = newList
+            repo.persist()
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -57,11 +65,8 @@ fun CategoriesScreen(repo: TaskRepository) {
                 Button(
                     onClick = {
                         val trimmed = newCategory.trim()
-                        if (trimmed.isNotEmpty() && !categories.contains(trimmed)) {
-                            categories.add(trimmed)
-                            repo.persist()
-                            newCategory = ""
-                        }
+                        addCategory(trimmed)
+                        newCategory = ""
                     },
                     modifier = Modifier
                         .height(56.dp) //  misma altura que el TextField
@@ -99,7 +104,8 @@ fun CategoriesScreen(repo: TaskRepository) {
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             IconButton(onClick = {
-                                categories.remove(cat)
+                                val newList = categories.toMutableList().apply { remove(cat) }
+                                categories = newList
                                 repo.persist()
                             }) {
                                 Icon(
