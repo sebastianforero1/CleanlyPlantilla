@@ -90,12 +90,12 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                     val passStr = pass
 
                     // Validaciones
-                    if (nameStr.isBlank()) { error = "El nombre es obligatorio"; return@Button }
+                    if (nameStr.isBlank()) { error = "Por favor, ingresa tu nombre."; return@Button }
                     if (!emailStr.matches(Regex("^[A-Za-z0-9._%+-]+@gmail\\.com$"))) {
-                        error = "Ingresa un correo válido (terminado en @gmail.com)"
+                        error = "Introduce un correo Gmail válido (ejemplo@gmail.com)."
                         return@Button
                     }
-                    if (passStr.length < 6) { error = "La contraseña debe tener al menos 6 caracteres"; return@Button }
+                    if (passStr.length < 6) { error = "La contraseña debe tener mínimo 6 caracteres."; return@Button }
 
                     error = null
                     scope.launch {
@@ -107,7 +107,7 @@ fun SignUpScreen(nav: NavController, auth: AuthService) {
                                 }
                             }
                             .onFailure { ex ->
-                                snack.showSnackbar(ex.message ?: "No se pudo registrar")
+                                snack.showSnackbar(ex.message ?: "No pudimos crear tu cuenta. Intenta de nuevo.")
                             }
                     }
                 },
