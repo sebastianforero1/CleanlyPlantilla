@@ -41,21 +41,25 @@ import com.xacarana.myapplication.ui.credits.CreditsScreen
 import com.xacarana.myapplication.ui.settings.SettingsScreen
 import com.xacarana.myapplication.ui.theme.MyApplicationTheme
 
+
+// Actividad principal de la aplicación. Gestiona la navegación y la inicialización de servicios globales.
 class MainActivity : ComponentActivity() {
 
     private lateinit var repo: TaskRepository
     private lateinit var auth: AuthService
 
+    // Método llamado al crear la actividad. Aquí se inicializan los servicios y la interfaz principal.
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        // Inicializar servicios
-        repo = SharedPrefsTaskRepository(applicationContext).apply { load(applicationContext) }
-        auth = AuthService(applicationContext)
-        Notifications.ensureChannel(this)
+    // Inicializar el repositorio de tareas y el servicio de autenticación
+    repo = SharedPrefsTaskRepository(applicationContext).apply { load(applicationContext) }
+    auth = AuthService(applicationContext)
+    // Crear el canal de notificaciones si no existe
+    Notifications.ensureChannel(this)
 
-        // Pedir permiso de notificaciones en Android 13+
+        // Solicitar permiso de notificaciones en Android 13 o superior
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
                 .launch(Manifest.permission.POST_NOTIFICATIONS)

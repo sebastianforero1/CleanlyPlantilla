@@ -13,6 +13,10 @@ import com.xacarana.myapplication.navigation.Screen
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.shape.RoundedCornerShape
 
+/**
+ * Pantalla de inicio de sesión.
+ * Permite al usuario ingresar su correo y contraseña para autenticarse.
+ */
 @Composable
 fun LoginScreen(nav: NavController, auth: AuthService) {
     var email by remember { mutableStateOf("") }
@@ -20,13 +24,15 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
     val scope = rememberCoroutineScope()
     val snack = remember { SnackbarHostState() }
 
+    // Contenedor principal de la pantalla
     Box(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 24.dp)
     ) {
         // Contenido centrado
-        Column(
+    // Columna con los campos y botón de login
+    Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.Center),
@@ -38,6 +44,7 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
                 style = MaterialTheme.typography.headlineSmall
             )
 
+            // Campo para ingresar el correo electrónico
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -46,6 +53,7 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
 
+            // Campo para ingresar la contraseña
             OutlinedTextField(
                 value = pass,
                 onValueChange = { pass = it },
@@ -55,6 +63,7 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
                 modifier = Modifier.fillMaxWidth(0.85f)
             )
 
+            // Botón para iniciar sesión. Llama a la función de autenticación y navega al dashboard si es exitoso.
             Button(
                 onClick = {
                     scope.launch {
@@ -79,7 +88,8 @@ fun LoginScreen(nav: NavController, auth: AuthService) {
         }
 
         // Snackbars abajo
-        SnackbarHost(
+    // Snackbar para mostrar mensajes de error o información al usuario
+    SnackbarHost(
             hostState = snack,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
