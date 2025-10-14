@@ -172,7 +172,7 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(Screen.Credits.route) {
                             currentRoute = Screen.Credits.route
-                            CreditsScreen()
+                            CreditsScreen(nav)
                         }
                     }
                 }
